@@ -2,8 +2,12 @@
 
 A Chrome extension that adds copy buttons next to file paths in GitHub PR review comments. 
 
-- **Click** to copy the filename with line number in IntelliJ-compatible format (e.g., `UserService.java:42`)
+- **Click** to copy the filename with line number in IntelliJ-compatible format (e.g., `test.py:2344`)
 - **Cmd+Click** (Mac) or **Ctrl+Click** (Windows) to open the file directly in IntelliJ IDEA
+
+![Screenshot showing the copy button in the top-right corner of a PR review comment](images/screenshot.png)
+
+The copy button appears in the top-right corner of each review comment header, so you won't miss it.
 
 ## Features
 
