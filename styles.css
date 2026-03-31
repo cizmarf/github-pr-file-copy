@@ -1,0 +1,41 @@
+/* GitHub PR File Copy - Copy Button Styles */
+
+/* Base button styles */
+.gh-pr-copy-btn {
+  appearance: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0 2px;
+  margin-left: 4px;
+  opacity: 0.6;
+  transition: opacity 0.2s, color 0.2s;
+  color: inherit;
+  vertical-align: middle;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Hover state - increased opacity */
+.gh-pr-copy-btn:hover {
+  opacity: 1;
+}
+
+/* Success state - GitHub green */
+.gh-pr-copy-btn.copied {
+  color: #2ea44f;
+  opacity: 1;
+}
+
+/* Error state - GitHub red */
+.gh-pr-copy-btn.error {
+  color: #cf222e;
+  opacity: 1;
+}
+
+/* SVG icon sizing */
+.gh-pr-copy-btn svg {
+  width: 12px;
+  height: 12px;
+}

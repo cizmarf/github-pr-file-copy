@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "GitHub PR File Copy",
+  "version": "1.0.0",
+  "description": "Copy file paths with line numbers from GitHub PR review comments in IntelliJ-compatible format",
+  "permissions": ["clipboardWrite"],
+  "content_scripts": [
+    {
+      "matches": ["https://github.com/*/pull/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"]
+    }
+  ]
+}
