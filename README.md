@@ -1,12 +1,16 @@
 # GitHub PR File Copy
 
-A Chrome extension that adds copy buttons next to file paths in GitHub PR review comments. Clicking the button copies the filename with line number in IntelliJ-compatible format (e.g., `Processor.java:92`).
+A Chrome extension that adds copy buttons next to file paths in GitHub PR review comments. 
+
+- **Click** to copy the filename with line number in IntelliJ-compatible format (e.g., `UserService.java:42`)
+- **Cmd+Click** (Mac) or **Ctrl+Click** (Windows) to open the file directly in IntelliJ IDEA
 
 ## Features
 
 - Adds a copy icon button next to file paths in PR review comments
-- Copies file reference in IntelliJ navigation format: `filename:lineNumber`
-- Visual feedback on copy success (green) or error (red)
+- Click: Copies file reference in IntelliJ navigation format: `filename:lineNumber`
+- Cmd+Click: Opens the file in IntelliJ at the exact line number
+- Visual feedback on copy success (green), IDE open (blue), or error (red)
 - Works with GitHub's SPA navigation (dynamically loaded content)
 - Minimal, non-intrusive UI that matches GitHub's design
 
@@ -20,6 +24,22 @@ A Chrome extension that adds copy buttons next to file paths in GitHub PR review
 4. Click "Load unpacked"
 5. Select the extension directory
 
+### Configuration (for Cmd+Click)
+
+To use Cmd+Click to open files in IntelliJ:
+
+1. Right-click the extension icon in Chrome toolbar
+2. Select "Options"
+3. Enter your local project root path (e.g., `/Users/john/projects/my-repo`)
+4. Click "Save"
+
+**Note:** IntelliJ must be running for the `idea://` protocol to work.
+
+### Limitations
+
+- **Truncated paths**: GitHub truncates long file paths with `...` prefix (e.g., `...src/main/java/com/example/MyClass.java`). Cmd+Click won't work for these files because the full path is not available. Use regular click to copy the filename instead.
+- **Project root**: The project root path must match exactly where the repository is cloned locally.
+
 ### Dependencies (for development only)
 
 ```bash
@@ -31,8 +51,9 @@ npm install
 1. Navigate to any GitHub Pull Request page
 2. Open the "Files changed" tab or view review comments
 3. Look for the small copy icon (📋) next to file paths in review comment headers
-4. Click the icon to copy the file reference to your clipboard
-5. Paste in IntelliJ's "Navigate to File" dialog (Cmd+Shift+O / Ctrl+Shift+N)
+4. **Click** the icon to copy the file reference to your clipboard
+5. **Cmd+Click** (Mac) or **Ctrl+Click** (Windows) to open directly in IntelliJ
+6. For clipboard copy: Paste in IntelliJ's "Navigate to File" dialog (Cmd+Shift+O / Ctrl+Shift+N)
 
 ## Project Structure
 

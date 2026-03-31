@@ -23,7 +23,39 @@ const SELECTORS = {
 };
 
 /**
+ * Extracts the full relative file path from a file path link within a summary element.
+ * GitHub may truncate long paths with "..." prefix.
+ * 
+ * @param {Element} summaryElement - The summary element containing the file path
+ * @returns {string|null} The full relative file path, or null if not found or truncated
+ */
+function extractFullPath(summaryElement) {
+  if (!summaryElement) {
+    return null;
+  }
+  
+  const filePathLink = summaryElement.querySelector(SELECTORS.filePathLink);
+  if (!filePathLink) {
+    return null;
+  }
+  
+  const fullPath = filePathLink.textContent?.trim();
+  if (!fullPath) {
+    return null;
+  }
+  
+  // Return null for truncated paths (GitHub uses "..." prefix for long paths)
+  // These cannot be reliably resolved to full local paths
+  if (fullPath.startsWith('...')) {
+    return null;
+  }
+  
+  return fullPath;
+}
+
+/**
  * Extracts the filename from a file path link within a summary element.
+ * Works even for truncated paths (with "..." prefix).
  * 
  * @param {Element} summaryElement - The summary element containing the file path
  * @returns {string|null} The filename (last segment of path) or null if not found
@@ -38,9 +70,14 @@ function extractFilename(summaryElement) {
     return null;
   }
   
-  const fullPath = filePathLink.textContent?.trim();
+  let fullPath = filePathLink.textContent?.trim();
   if (!fullPath) {
     return null;
+  }
+  
+  // Remove leading "..." if present (GitHub truncates long paths)
+  if (fullPath.startsWith('...')) {
+    fullPath = fullPath.substring(3);
   }
   
   // Extract the last segment of the path (the filename)
@@ -115,8 +152,8 @@ function createCopyButton() {
   const button = document.createElement('button');
   button.className = COPY_BUTTON_CLASS;
   button.type = 'button';
-  button.title = 'Copy file reference';
-  button.setAttribute('aria-label', 'Copy file reference to clipboard');
+  button.title = 'Click to copy • Cmd+Click to open in IntelliJ';
+  button.setAttribute('aria-label', 'Copy file reference to clipboard, or Cmd+Click to open in IntelliJ');
   
   // GitHub Octicon copy icon (12x12)
   button.innerHTML = `
@@ -194,6 +231,65 @@ function injectButtons(root) {
 // Click Handler and Clipboard Functionality
 // =============================================================================
 
+/** Cached project root path from storage */
+let cachedProjectRoot = null;
+
+/**
+ * Loads the project root path from Chrome storage.
+ * @returns {Promise<string|null>} The project root path or null if not configured
+ */
+async function getProjectRoot() {
+  if (cachedProjectRoot !== null) {
+    return cachedProjectRoot;
+  }
+  
+  try {
+    const result = await chrome.storage.sync.get(['projectRoot']);
+    cachedProjectRoot = result.projectRoot || null;
+    return cachedProjectRoot;
+  } catch (error) {
+    console.error('Failed to load project root from storage:', error);
+    return null;
+  }
+}
+
+/**
+ * Opens a file in IntelliJ IDEA using the idea:// protocol.
+ * Uses the navigate/reference format which focuses existing window and navigates to file.
+ * 
+ * @param {string} projectRoot - The local project root path
+ * @param {string} relativePath - The relative file path from the repo
+ * @param {number} lineNumber - The line number to navigate to
+ * @param {HTMLButtonElement} button - The button element for visual feedback
+ */
+function openInIntelliJ(projectRoot, relativePath, lineNumber, button) {
+  // Construct full local path
+  const fullPath = `${projectRoot}/${relativePath}`;
+  
+  // Use navigate/reference format - focuses existing IntelliJ window
+  // Format: idea://open?file=PATH&line=LINE
+  // Alternative that may work better: idea://open?file=PATH:LINE
+  const ideaUrl = `idea://open?file=${encodeURIComponent(fullPath)}&line=${lineNumber}`;
+  
+  // Use an iframe to trigger the protocol without navigating away from the page
+  // This also prevents the "Open in app?" dialog from blocking the page
+  const iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  iframe.src = ideaUrl;
+  document.body.appendChild(iframe);
+  
+  // Clean up iframe after a short delay
+  setTimeout(() => {
+    document.body.removeChild(iframe);
+  }, 100);
+  
+  // Visual feedback
+  button.classList.add('opened');
+  setTimeout(() => {
+    button.classList.remove('opened');
+  }, 2000);
+}
+
 /**
  * Copies text to clipboard and provides visual feedback on the button.
  * 
@@ -231,7 +327,8 @@ async function copyToClipboard(text, button) {
 
 /**
  * Handles copy button click with event propagation prevention.
- * Extracts file reference and copies to clipboard.
+ * - Regular click: copies file reference to clipboard
+ * - Cmd+Click (Mac) / Ctrl+Click (Windows): opens file in IntelliJ
  * 
  * @param {MouseEvent} event - The click event
  * @param {Element} summaryElement - The parent summary element containing file path
@@ -266,9 +363,40 @@ async function handleClick(event, summaryElement) {
     return;
   }
   
-  // Format the reference and copy to clipboard
-  const reference = formatReference(filename, lineNumber);
-  await copyToClipboard(reference, button);
+  // Check if Cmd (Mac) or Ctrl (Windows/Linux) is held
+  const isModifierHeld = event.metaKey || event.ctrlKey;
+  
+  if (isModifierHeld) {
+    // Cmd+Click: Open in IntelliJ
+    const projectRoot = await getProjectRoot();
+    
+    if (!projectRoot) {
+      // No project root configured - show error and copy instead
+      console.warn('Project root not configured. Right-click extension icon > Options to set it.');
+      button.classList.add('error');
+      setTimeout(() => button.classList.remove('error'), 2000);
+      
+      // Fall back to copy behavior
+      const reference = formatReference(filename, lineNumber);
+      await copyToClipboard(reference, button);
+      return;
+    }
+    
+    const relativePath = extractFullPath(summaryElement);
+    if (!relativePath) {
+      // Path is truncated (starts with ...) - fall back to copy
+      console.warn('Cannot open in IntelliJ: file path is truncated. Copying to clipboard instead.');
+      const reference = formatReference(filename, lineNumber);
+      await copyToClipboard(reference, button);
+      return;
+    }
+    
+    openInIntelliJ(projectRoot, relativePath, lineNumber, button);
+  } else {
+    // Regular click: Copy to clipboard
+    const reference = formatReference(filename, lineNumber);
+    await copyToClipboard(reference, button);
+  }
 }
 
 // =============================================================================
@@ -368,6 +496,7 @@ if (typeof module !== 'undefined' && module.exports) {
     SELECTORS,
     COPY_BUTTON_CLASS,
     extractFilename,
+    extractFullPath,
     extractLineNumber,
     formatReference,
     createCopyButton,
@@ -375,6 +504,8 @@ if (typeof module !== 'undefined' && module.exports) {
     injectButtons,
     copyToClipboard,
     handleClick,
+    openInIntelliJ,
+    getProjectRoot,
     initObserver,
     disconnectObserver,
     handleMutations

@@ -28,6 +28,12 @@
   opacity: 1;
 }
 
+/* Opened in IDE state - GitHub blue */
+.gh-pr-copy-btn.opened {
+  color: #0969da;
+  opacity: 1;
+}
+
 /* Error state - GitHub red */
 .gh-pr-copy-btn.error {
   color: #cf222e;

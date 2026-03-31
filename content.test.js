@@ -593,12 +593,12 @@ describe('createCopyButton', () => {
 
   test('button has accessible title attribute', () => {
     const button = createCopyButton();
-    expect(button.title).toBe('Copy file reference');
+    expect(button.title).toBe('Click to copy • Cmd+Click to open in IntelliJ');
   });
 
   test('button has aria-label for screen readers', () => {
     const button = createCopyButton();
-    expect(button.getAttribute('aria-label')).toBe('Copy file reference to clipboard');
+    expect(button.getAttribute('aria-label')).toBe('Copy file reference to clipboard, or Cmd+Click to open in IntelliJ');
   });
 
   test('button contains an SVG icon', () => {
